@@ -352,18 +352,14 @@ async function batchFetch(urls, batchSize = 25, onProgress) {
 
 async function loadOrgs() {
   setProgress(3, 'Loading organisation list…');
-  let offset = 0, total = Infinity;
-  while (offset < total) {
-    const d = await fetchJSON(`${API}/organisation.json?limit=500&offset=${offset}`);
-    total = parseInt(d.count, 10);
-    d.entities
-      .filter(o => LPA_TYPES.has(o['local-authority-type']))
-      .forEach(o => {
-        S.orgs.push(o);
-        S.orgMap[o.entity] = o;
-      });
-    offset += 500;
-  }
+  const d = await fetchJSON(`${API}/organisation.json`);
+  // organisations is a nested object keyed by type, each value is an array
+  Object.values(d.organisations).flat().forEach(o => {
+    if (LPA_TYPES.has(o['local-authority-type'])) {
+      S.orgs.push(o);
+      S.orgMap[o.entity] = o;
+    }
+  });
   S.orgs.sort((a, b) => a.name.localeCompare(b.name));
 }
 
