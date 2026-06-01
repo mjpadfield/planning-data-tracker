@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en" class="govuk-template">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planning Data Tracker — MHCLG</title>
+  <link rel="stylesheet" href="https://unpkg.com/govuk-frontend@5.4.1/dist/govuk/govuk-frontend.min.css">
+  <style>
+    /* ── Layout ──────────────────────────────────────────────── */
+    body { font-family: "GDS Transport", arial, sans-serif; }
+
+    /* ── Stat cards ──────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      border-left: 5px solid #1d70b8;
+      background: #f3f2f1;
+      padding: 16px 20px;
+    }
+    .stat-card.green  { border-color: #00703c; }
+    .stat-card.orange { border-color: #f47738; }
+    .stat-card.purple { border-color: #4c2c92; }
+    .stat-card__number { font-size: 2.25rem; font-weight: 700; line-height: 1; color: #0b0c0c; }
+    .stat-card__label  { font-size: 0.9rem; color: #505a5f; margin-top: 4px; }
+
+    /* ── Progress bar ────────────────────────────────────────── */
+    .progress-outer { background: #f3f2f1; border-radius: 4px; height: 10px; margin: 16px 0; overflow: hidden; }
+    .progress-inner { background: #1d70b8; height: 10px; border-radius: 4px; transition: width 0.25s ease; }
+
+    /* ── Scrollable table wrapper ────────────────────────────── */
+    .table-scroll { max-height: 620px; overflow-y: auto; border: 1px solid #b1b4b6; }
+    .table-scroll table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .table-scroll thead th {
+      background: #1d70b8; color: #fff;
+      padding: 10px 14px; text-align: left;
+      position: sticky; top: 0; z-index: 2;
+      white-space: nowrap;
+    }
+    .table-scroll thead th.center { text-align: center; }
+    .table-scroll tbody td { padding: 8px 14px; border-bottom: 1px solid #f3f2f1; vertical-align: middle; }
+    .table-scroll tbody tr:hover { background: #f8f8f8; }
+
+    /* ── Data cells in heatmap / leaderboard ─────────────────── */
+    .cell-yes { display: inline-block; min-width: 52px; padding: 3px 8px; border-radius: 3px; text-align: center; font-weight: 600; font-size: 0.85rem; }
+    .cell-yes.a4d { background: #d2e2f1; color: #0b3d91; }
+    .cell-yes.ca  { background: #cce2d8; color: #005a30; }
+    .cell-yes.tpo { background: #fce5d3; color: #6e2e00; }
+    .cell-no      { display: inline-block; min-width: 52px; padding: 3px 8px; border-radius: 3px; text-align: center; color: #b1b4b6; background: #f3f2f1; font-size: 0.85rem; }
+
+    /* ── Sortable headers ────────────────────────────────────── */
+    .sortable { cursor: pointer; user-select: none; }
+    .sortable::after { content: " ↕"; opacity: 0.45; font-size: 0.75rem; }
+    .sort-asc::after  { content: " ↑"; opacity: 1; }
+    .sort-desc::after { content: " ↓"; opacity: 1; }
+
+    /* ── Score bar ───────────────────────────────────────────── */
+    .bar-bg   { background: #e8e8e8; border-radius: 3px; height: 10px; width: 80px; }
+    .bar-fill { background: #1d70b8; height: 10px; border-radius: 3px; }
+
+    /* ── Rank badges ─────────────────────────────────────────── */
+    .rank { display: inline-block; width: 26px; height: 26px; border-radius: 50%; text-align: center; line-height: 26px; font-size: 0.75rem; font-weight: 700; color: #fff; background: #1d70b8; }
+    .rank.gold   { background: #f3a01f; color: #0b0c0c; }
+    .rank.silver { background: #929191; }
+    .rank.bronze { background: #a1622b; }
+
+    /* ── Filter pills ────────────────────────────────────────── */
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .pill {
+      padding: 5px 14px; border: 2px solid #1d70b8; border-radius: 20px;
+      cursor: pointer; font-size: 0.875rem; background: #fff; color: #1d70b8;
+      font-family: inherit;
+    }
+    .pill.active, .pill:hover { background: #1d70b8; color: #fff; }
+
+    /* ── Activity feed ───────────────────────────────────────── */
+    .feed-date-header {
+      font-size: 1rem; font-weight: 700; color: #0b0c0c;
+      border-bottom: 2px solid #b1b4b6; padding-bottom: 6px; margin: 24px 0 12px;
+    }
+    .feed-item { display: flex; align-items: flex-start; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f3f2f1; }
+    .feed-meta { flex: 1 1 auto; }
+    .feed-name { font-weight: 600; color: #0b0c0c; }
+    .feed-org  { font-size: 0.85rem; color: #505a5f; }
+
+    /* ── Weekly ──────────────────────────────────────────────── */
+    .weekly-hero { font-size: 3rem; font-weight: 700; color: #0b0c0c; line-height: 1; }
+    .weekly-sub  { color: #505a5f; margin-top: 4px; margin-bottom: 24px; }
+    .weekly-ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .weekly-ds { border: 2px solid #b1b4b6; padding: 14px 16px; }
+    .weekly-ds__count { font-size: 2rem; font-weight: 700; }
+    .weekly-ds__label { font-size: 0.85rem; color: #505a5f; }
+
+    /* ── Refresh row ─────────────────────────────────────────── */
+    .refresh-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; font-size: 0.9rem; color: #505a5f; }
+
+    /* ── Misc ────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .govuk-tabs__panel { padding-top: 20px; }
+  </style>
+</head>
+<body class="govuk-template__body">
+
+<!-- ── Header ──────────────────────────────────────────────────────── -->
+<header class="govuk-header" role="banner">
+  <div class="govuk-header__container govuk-width-container">
+    <div class="govuk-header__logo">
+      <a href="#" class="govuk-header__link govuk-header__link--homepage">
+        <span class="govuk-header__logotype">
+          <svg aria-hidden="true" focusable="false" class="govuk-header__logotype-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" height="30" width="32">
+            <path fill="currentColor" fill-rule="evenodd" d="M22.6 10.4c-1 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m-5.9 6.7c-.9.4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m10.8-3.7c-1 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m3.3 4.8c-1 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4M17 0L15.3 6H9l1.8 2.5L8 12h6l1.6-2.2L17 12h6l-2.8-3.5L22 6h-6.3L17 0zM0 24l2 6h28l2-6H0z"/>
+          </svg>
+          <span class="govuk-header__logotype-text">GOV.UK</span>
+        </span>
+      </a>
+    </div>
+    <div class="govuk-header__content">
+      <a href="#" class="govuk-header__link govuk-header__link--service-name">
+        Planning Data Tracker
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="govuk-width-container">
+  <div class="govuk-phase-banner">
+    <p class="govuk-phase-banner__content">
+      <strong class="govuk-tag govuk-phase-banner__content__tag">Beta</strong>
+      <span class="govuk-phase-banner__text">
+        Data sourced live from
+        <a class="govuk-link" href="https://www.planning.data.gov.uk" target="_blank" rel="noopener">planning.data.gov.uk</a>
+      </span>
+    </p>
+  </div>
+</div>
+
+<!-- ── Main ────────────────────────────────────────────────────────── -->
+<div class="govuk-width-container">
+  <main class="govuk-main-wrapper" id="main-content" role="main">
+
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-two-thirds">
+        <h1 class="govuk-heading-xl" style="margin-bottom: 12px">Planning data submissions tracker</h1>
+        <p class="govuk-body-l">Track which local planning authorities have digitised their
+          <strong>Article 4 Directions</strong>, <strong>Conservation Areas</strong> and
+          <strong>Tree Preservation Orders</strong> on
+          <a class="govuk-link" href="https://www.planning.data.gov.uk" target="_blank" rel="noopener">planning.data.gov.uk</a>.
+        </p>
+      </div>
+    </div>
+
+    <!-- Loading panel -->
+    <div id="loading-panel">
+      <h2 class="govuk-heading-m" id="loading-msg">Loading data…</h2>
+      <div class="progress-outer"><div class="progress-inner" id="progress-bar" style="width:2%"></div></div>
+      <p class="govuk-body-s" id="loading-detail" style="color:#505a5f"></p>
+      <p class="govuk-body-s" style="color:#505a5f">
+        This page calls the planning.data.gov.uk API in real time — first load takes 15–30 seconds.
+      </p>
+    </div>
+
+    <!-- Error panel -->
+    <div id="error-panel" class="hidden">
+      <div class="govuk-error-summary" data-module="govuk-error-summary">
+        <div role="alert">
+          <h2 class="govuk-error-summary__title">There was a problem loading data</h2>
+          <div class="govuk-error-summary__body">
+            <p class="govuk-body" id="error-msg"></p>
+            <button class="govuk-button govuk-button--secondary" onclick="init()">Try again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content panel (hidden until load) -->
+    <div id="main-panel" class="hidden">
+
+      <div class="refresh-row">
+        <span>Updated: <strong id="last-updated-ts"></strong></span>
+        <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" onclick="refresh()">↻ Refresh data</button>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <!-- Tabs -->
+      <div class="govuk-tabs" data-module="govuk-tabs">
+        <h2 class="govuk-tabs__title">Contents</h2>
+        <ul class="govuk-tabs__list" role="tablist">
+          <li class="govuk-tabs__list-item govuk-tabs__list-item--selected" role="presentation">
+            <a class="govuk-tabs__tab" href="#tab-leaderboard" id="tab-leaderboard-tab" role="tab">Leaderboard</a>
+          </li>
+          <li class="govuk-tabs__list-item" role="presentation">
+            <a class="govuk-tabs__tab" href="#tab-heatmap" id="tab-heatmap-tab" role="tab">Heatmap</a>
+          </li>
+          <li class="govuk-tabs__list-item" role="presentation">
+            <a class="govuk-tabs__tab" href="#tab-activity" id="tab-activity-tab" role="tab">Activity feed</a>
+          </li>
+          <li class="govuk-tabs__list-item" role="presentation">
+            <a class="govuk-tabs__tab" href="#tab-weekly" id="tab-weekly-tab" role="tab">Weekly summary</a>
+          </li>
+        </ul>
+
+        <!-- ── Leaderboard tab ──────────────────────────────────── -->
+        <div class="govuk-tabs__panel" id="tab-leaderboard" role="tabpanel">
+          <h2 class="govuk-heading-l">Leaderboard</h2>
+          <p class="govuk-body">Councils ranked by total records submitted. Click column headers to sort.</p>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+            <div>
+              <label class="govuk-label govuk-!-font-size-16" for="lb-search">Filter by council name</label>
+              <input class="govuk-input govuk-input--width-20" id="lb-search" type="search"
+                     placeholder="e.g. Camden" autocomplete="off"
+                     oninput="filterLeaderboard(this.value)">
+            </div>
+            <div>
+              <label class="govuk-label govuk-!-font-size-16" for="lb-show">Show</label>
+              <select class="govuk-select" id="lb-show" onchange="renderLeaderboard()">
+                <option value="all">All councils</option>
+                <option value="data" selected>With data only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-scroll" id="lb-table"></div>
+        </div>
+
+        <!-- ── Heatmap tab ──────────────────────────────────────── -->
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-heatmap" role="tabpanel">
+          <h2 class="govuk-heading-l">Dataset coverage heatmap</h2>
+          <p class="govuk-body">Which datasets each local planning authority has submitted. Filter by region.</p>
+          <div class="pills" id="region-pills"></div>
+          <div class="table-scroll" id="hm-table"></div>
+        </div>
+
+        <!-- ── Activity feed tab ───────────────────────────────── -->
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-activity" role="tabpanel">
+          <h2 class="govuk-heading-l">Activity feed</h2>
+          <p class="govuk-body">Records added in the last 30 days, newest first.</p>
+          <div class="pills" id="activity-pills">
+            <button class="pill active" onclick="filterActivity('all',this)">All datasets</button>
+            <button class="pill" onclick="filterActivity('article-4-direction',this)">Article 4 Directions</button>
+            <button class="pill" onclick="filterActivity('conservation-area',this)">Conservation Areas</button>
+            <button class="pill" onclick="filterActivity('tree-preservation-order',this)">TPOs</button>
+          </div>
+          <div id="activity-feed"></div>
+        </div>
+
+        <!-- ── Weekly summary tab ──────────────────────────────── -->
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-weekly" role="tabpanel">
+          <h2 class="govuk-heading-l">Weekly summary</h2>
+          <div id="weekly-content"></div>
+        </div>
+
+      </div><!-- /govuk-tabs -->
+    </div><!-- /main-panel -->
+
+  </main>
+</div>
+
+<!-- ── Footer ──────────────────────────────────────────────────────── -->
+<footer class="govuk-footer">
+  <div class="govuk-width-container">
+    <div class="govuk-footer__meta">
+      <div class="govuk-footer__meta-item govuk-footer__meta-item--grow">
+        <ul class="govuk-footer__inline-list">
+          <li class="govuk-footer__inline-list-item">
+            <a class="govuk-footer__link" href="https://www.planning.data.gov.uk" target="_blank" rel="noopener">planning.data.gov.uk</a>
+          </li>
+          <li class="govuk-footer__inline-list-item">
+            <a class="govuk-footer__link" href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener">Open Government Licence v3.0</a>
+          </li>
+        </ul>
+        <p class="govuk-footer__licence-description">
+          Data © Crown copyright and database right 2026
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/govuk-frontend@5.4.1/dist/govuk/govuk-frontend.min.js"></script>
+<script>
+'use strict';
+
+// ── Constants ───────────────────────────────────────────────────────────────
+
+const API = 'https://www.planning.data.gov.uk';
+
+const DATASETS = [
+  { id: 'article-4-direction',     label: 'Article 4 Directions',     short: 'A4D', cls: 'a4d', tagClass: 'govuk-tag--blue'   },
+  { id: 'conservation-area',       label: 'Conservation Areas',       short: 'CA',  cls: 'ca',  tagClass: 'govuk-tag--green'  },
+  { id: 'tree-preservation-order', label: 'Tree Preservation Orders', short: 'TPO', cls: 'tpo', tagClass: 'govuk-tag--orange' },
+];
+
+const LPA_TYPES = new Set(['LBO', 'MD', 'NMD', 'UA', 'CTY', 'CC']);
+
+const REGIONS = {
+  E12000001: 'North East',
+  E12000002: 'North West',
+  E12000003: 'Yorkshire and The Humber',
+  E12000004: 'East Midlands',
+  E12000005: 'West Midlands',
+  E12000006: 'East of England',
+  E12000007: 'London',
+  E12000008: 'South East',
+  E12000009: 'South West',
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+
+let S = {
+  orgs:     [],   // [{entity, name, 'local-authority-type', region}]
+  orgMap:   {},   // entity -> org
+  counts:   {},   // orgEntity -> { datasetId -> count }
+  recent:   [],   // recent entity additions (last 30 days)
+  weekly:   [],   // last 7 days subset
+  lastUpdated: null,
+
+  // UI state
+  sort:           { col: 'total', dir: 'desc' },
+  lbFilter:       '',
+  regionFilter:   'all',
+  activityFilter: 'all',
+};
+
+// ── Fetch helpers ────────────────────────────────────────────────────────────
+
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status} from ${url}`);
+  return r.json();
+}
+
+async function batchFetch(urls, batchSize = 25, onProgress) {
+  const results = new Array(urls.length).fill(null);
+  for (let i = 0; i < urls.length; i += batchSize) {
+    const slice = urls.slice(i, i + batchSize);
+    const settled = await Promise.allSettled(slice.map(fetchJSON));
+    settled.forEach((r, j) => {
+      results[i + j] = r.status === 'fulfilled' ? r.value : null;
+    });
+    if (onProgress) onProgress(Math.min(i + batchSize, urls.length), urls.length);
+  }
+  return results;
+}
+
+// ── Data loading ─────────────────────────────────────────────────────────────
+
+async function loadOrgs() {
+  setProgress(3, 'Loading organisation list…');
+  let offset = 0, total = Infinity;
+  while (offset < total) {
+    const d = await fetchJSON(`${API}/organisation.json?limit=500&offset=${offset}`);
+    total = parseInt(d.count, 10);
+    d.entities
+      .filter(o => LPA_TYPES.has(o['local-authority-type']))
+      .forEach(o => {
+        S.orgs.push(o);
+        S.orgMap[o.entity] = o;
+      });
+    offset += 500;
+  }
+  S.orgs.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function loadCounts() {
+  const urls = [];
+  for (const org of S.orgs) {
+    for (const ds of DATASETS) {
+      urls.push(`${API}/entity.json?dataset=${ds.id}&organisation_entity=${org.entity}&limit=1`);
+    }
+  }
+  const results = await batchFetch(urls, 25, (done, total) => {
+    const pct = 8 + Math.round((done / total) * 62);
+    setProgress(pct, `Fetching submission counts… (${done} / ${total})`);
+  });
+
+  let idx = 0;
+  for (const org of S.orgs) {
+    S.counts[org.entity] = {};
+    for (const ds of DATASETS) {
+      const r = results[idx++];
+      S.counts[org.entity][ds.id] = r ? (parseInt(r.count, 10) || 0) : 0;
+    }
+  }
+}
+
+async function loadRecent() {
+  setProgress(74, 'Loading recent activity…');
+  const today = new Date();
+  const cutoff30 = new Date(today - 30 * 864e5);
+  const { y30, m30, d30 } = { y30: cutoff30.getFullYear(), m30: cutoff30.getMonth() + 1, d30: cutoff30.getDate() };
+
+  for (const ds of DATASETS) {
+    try {
+      const url = `${API}/entity.json?dataset=${ds.id}` +
+        `&entry_date_year=${y30}&entry_date_month=${m30}&entry_date_day=${d30}` +
+        `&entry_date_match=since&limit=500`;
+      const data = await fetchJSON(url);
+      data.entities
+        .filter(e => e['entry-date'])
+        .forEach(e => S.recent.push({ ...e, _ds: ds.id }));
+    } catch (err) {
+      console.warn('Recent load failed for', ds.id, err);
+    }
+  }
+
+  S.recent.sort((a, b) => b['entry-date'].localeCompare(a['entry-date']));
+
+  const cutoff7 = new Date(today - 7 * 864e5).toISOString().split('T')[0];
+  S.weekly = S.recent.filter(e => e['entry-date'] >= cutoff7);
+}
+
+// ── Orchestration ─────────────────────────────────────────────────────────────
+
+async function init() {
+  // Reset state
+  S = { orgs: [], orgMap: {}, counts: {}, recent: [], weekly: [], lastUpdated: null,
+        sort: { col: 'total', dir: 'desc' }, lbFilter: '', regionFilter: 'all', activityFilter: 'all' };
+
+  document.getElementById('loading-panel').classList.remove('hidden');
+  document.getElementById('main-panel').classList.add('hidden');
+  document.getElementById('error-panel').classList.add('hidden');
+
+  try {
+    await loadOrgs();
+    await loadCounts();
+    await loadRecent();
+
+    setProgress(96, 'Rendering…');
+    S.lastUpdated = new Date();
+
+    renderAll();
+
+    document.getElementById('loading-panel').classList.add('hidden');
+    document.getElementById('main-panel').classList.remove('hidden');
+
+    window.GOVUKFrontend.initAll();
+
+  } catch (err) {
+    document.getElementById('loading-panel').classList.add('hidden');
+    document.getElementById('error-panel').classList.remove('hidden');
+    document.getElementById('error-msg').textContent = err.message;
+    console.error(err);
+  }
+}
+
+function refresh() { init(); }
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+function setProgress(pct, msg) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('loading-detail').textContent = msg;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(d) {
+  if (!d) return '–';
+  try {
+    return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch { return d; }
+}
+
+function orgTotal(entity) {
+  const c = S.counts[entity] || {};
+  return DATASETS.reduce((s, ds) => s + (c[ds.id] || 0), 0);
+}
+
+function orgName(entity) {
+  return S.orgMap[entity]?.name ?? `Organisation ${entity}`;
+}
+
+// ── Stat cards ────────────────────────────────────────────────────────────────
+
+function renderStats() {
+  const orgsWithAny = S.orgs.filter(o => orgTotal(o.entity) > 0).length;
+  const totals = Object.fromEntries(
+    DATASETS.map(ds => [ds.id, S.orgs.reduce((s, o) => s + (S.counts[o.entity]?.[ds.id] || 0), 0)])
+  );
+
+  const cards = [
+    { n: orgsWithAny,                             label: `of ${S.orgs.length} LPAs have submitted data`, cls: '' },
+    { n: totals['article-4-direction'].toLocaleString(), label: 'Article 4 Directions',     cls: '' },
+    { n: totals['conservation-area'].toLocaleString(),   label: 'Conservation Areas',       cls: 'green' },
+    { n: totals['tree-preservation-order'].toLocaleString(), label: 'Tree Preservation Orders', cls: 'orange' },
+    { n: S.weekly.length,                         label: 'records added this week',      cls: 'purple' },
+  ];
+
+  document.getElementById('stat-grid').innerHTML = cards.map(c =>
+    `<div class="stat-card ${c.cls}"><div class="stat-card__number">${c.n}</div><div class="stat-card__label">${c.label}</div></div>`
+  ).join('');
+
+  document.getElementById('last-updated-ts').textContent =
+    S.lastUpdated.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+
+function filterLeaderboard(val) {
+  S.lbFilter = val;
+  renderLeaderboard();
+}
+
+function sortLeaderboard(col) {
+  S.sort = (S.sort.col === col)
+    ? { col, dir: S.sort.dir === 'desc' ? 'asc' : 'desc' }
+    : { col, dir: col === 'name' ? 'asc' : 'desc' };
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  const filter  = (S.lbFilter || '').toLowerCase();
+  const showAll = document.getElementById('lb-show')?.value === 'all';
+
+  let rows = S.orgs.map(o => ({
+    org:   o,
+    total: orgTotal(o.entity),
+    c:     S.counts[o.entity] || {},
+  }));
+
+  if (!showAll) rows = rows.filter(r => r.total > 0);
+  if (filter)   rows = rows.filter(r => r.org.name.toLowerCase().includes(filter));
+
+  const { col, dir } = S.sort;
+  rows.sort((a, b) => {
+    let av, bv;
+    if (col === 'name')  { return dir === 'asc' ? a.org.name.localeCompare(b.org.name) : b.org.name.localeCompare(a.org.name); }
+    if (col === 'total') { av = a.total; bv = b.total; }
+    else                 { av = a.c[col] || 0; bv = b.c[col] || 0; }
+    return dir === 'asc' ? av - bv : bv - av;
+  });
+
+  const maxTotal = Math.max(...rows.map(r => r.total), 1);
+
+  function thSort(col, label) {
+    const cls = S.sort.col === col ? `sort-${S.sort.dir}` : '';
+    return `<th class="sortable center ${cls}" onclick="sortLeaderboard('${col}')">${label}</th>`;
+  }
+
+  const thead = `<thead><tr>
+    <th style="width:36px">#</th>
+    <th class="sortable ${S.sort.col==='name'?`sort-${S.sort.dir}`:''}" onclick="sortLeaderboard('name')">Council</th>
+    ${DATASETS.map(ds => thSort(ds.id, ds.short)).join('')}
+    ${thSort('total','Total')}
+    <th style="width:90px"></th>
+  </tr></thead>`;
+
+  const tbody = rows.map((r, i) => {
+    const rank = i + 1;
+    const rankBadge = rank === 1 ? `<span class="rank gold">1</span>`
+                    : rank === 2 ? `<span class="rank silver">2</span>`
+                    : rank === 3 ? `<span class="rank bronze">3</span>`
+                    : `<span style="color:#505a5f;font-size:0.8rem">${rank}</span>`;
+    const barW = Math.round((r.total / maxTotal) * 80);
+
+    return `<tr>
+      <td>${rankBadge}</td>
+      <td><strong>${esc(r.org.name)}</strong></td>
+      ${DATASETS.map(ds => `<td style="text-align:center">
+        ${r.c[ds.id] > 0
+          ? `<span class="cell-yes ${ds.cls}">${r.c[ds.id].toLocaleString()}</span>`
+          : `<span class="cell-no">–</span>`}
+      </td>`).join('')}
+      <td style="text-align:center"><strong>${r.total.toLocaleString()}</strong></td>
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${barW}px"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('lb-table').innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+}
+
+// ── Heatmap ───────────────────────────────────────────────────────────────────
+
+function filterHeatmap(region, btn) {
+  S.regionFilter = region;
+  document.querySelectorAll('#region-pills .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHeatmap();
+}
+
+function renderHeatmap() {
+  // Build region pill list
+  const usedRegions = new Set(S.orgs.map(o => o.region).filter(Boolean));
+  const pillHTML = [['all', 'All regions'], ...Object.entries(REGIONS).filter(([k]) => usedRegions.has(k))]
+    .map(([k, v]) => `<button class="pill${k === S.regionFilter ? ' active' : ''}" onclick="filterHeatmap('${k}',this)">${esc(v)}</button>`)
+    .join('');
+  document.getElementById('region-pills').innerHTML = pillHTML;
+
+  const orgs = S.regionFilter === 'all'
+    ? S.orgs
+    : S.orgs.filter(o => o.region === S.regionFilter);
+
+  const thead = `<thead><tr>
+    <th>Council</th>
+    <th>Type</th>
+    ${DATASETS.map(ds => `<th class="center">${esc(ds.short)}</th>`).join('')}
+    <th class="center">Coverage</th>
+  </tr></thead>`;
+
+  const tbody = orgs.map(org => {
+    const c = S.counts[org.entity] || {};
+    const score = DATASETS.filter(ds => (c[ds.id] || 0) > 0).length;
+    const dots = DATASETS.map((ds, i) =>
+      `<span style="color:${c[ds.id]>0?['#1d70b8','#00703c','#f47738'][i]:'#d8d8d8'};font-size:1.2rem">●</span>`
+    ).join(' ');
+
+    return `<tr>
+      <td>${esc(org.name)}</td>
+      <td><strong class="govuk-tag govuk-tag--grey govuk-!-font-size-14">${esc(org['local-authority-type'])}</strong></td>
+      ${DATASETS.map(ds => `<td style="text-align:center">
+        ${c[ds.id] > 0
+          ? `<span class="cell-yes ${ds.cls}">${c[ds.id].toLocaleString()}</span>`
+          : `<span class="cell-no">–</span>`}
+      </td>`).join('')}
+      <td style="text-align:center">${dots} <span style="color:#505a5f;font-size:0.75rem">${score}/3</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('hm-table').innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+}
+
+// ── Activity feed ─────────────────────────────────────────────────────────────
+
+function filterActivity(dsId, btn) {
+  S.activityFilter = dsId;
+  document.querySelectorAll('#activity-pills .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderActivity();
+}
+
+function renderActivity() {
+  const items = S.activityFilter === 'all'
+    ? S.recent
+    : S.recent.filter(e => e._ds === S.activityFilter);
+
+  if (!items.length) {
+    document.getElementById('activity-feed').innerHTML =
+      `<p class="govuk-body">No records found for the selected dataset in the last 30 days.</p>`;
+    return;
+  }
+
+  // Group by date
+  const byDate = {};
+  items.forEach(e => {
+    const d = e['entry-date'] || 'Unknown';
+    (byDate[d] = byDate[d] || []).push(e);
+  });
+
+  const html = Object.entries(byDate).map(([date, entries]) => {
+    const items = entries.map(e => {
+      const ds = DATASETS.find(d => d.id === e._ds);
+      const name = e.name || e.reference || `Entity ${e.entity}`;
+      const org  = e['organisation-entity'] ? orgName(e['organisation-entity']) : 'Unknown authority';
+      return `<div class="feed-item">
+        <div><strong class="govuk-tag ${ds?.tagClass || ''}">${esc(ds?.short)}</strong></div>
+        <div class="feed-meta">
+          <div class="feed-name">${esc(name)}</div>
+          <div class="feed-org">${esc(org)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<h3 class="feed-date-header">${fmtDate(date)} <span style="color:#b1b4b6;font-weight:400;font-size:0.9rem">(${entries.length} record${entries.length > 1 ? 's' : ''})</span></h3>${items}`;
+  }).join('');
+
+  document.getElementById('activity-feed').innerHTML = html;
+}
+
+// ── Weekly summary ────────────────────────────────────────────────────────────
+
+function renderWeekly() {
+  const total = S.weekly.length;
+  const byCounts = Object.fromEntries(DATASETS.map(ds => [ds.id, S.weekly.filter(e => e._ds === ds.id).length]));
+
+  // Orgs that added data this week
+  const orgCounts = {};
+  S.weekly.forEach(e => {
+    const id = e['organisation-entity'];
+    if (id) orgCounts[id] = (orgCounts[id] || 0) + 1;
+  });
+  const weekOrgs = Object.entries(orgCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => ({ name: orgName(id), count: n }));
+
+  const dsBreakdown = DATASETS.map(ds => `
+    <div class="weekly-ds">
+      <div class="weekly-ds__count">${byCounts[ds.id]}</div>
+      <div class="weekly-ds__label">${esc(ds.label)}</div>
+    </div>`).join('');
+
+  const orgTable = weekOrgs.length
+    ? `<h3 class="govuk-heading-m">Councils that added data this week</h3>
+       <table class="govuk-table">
+         <thead class="govuk-table__head">
+           <tr class="govuk-table__row">
+             <th scope="col" class="govuk-table__header">Council</th>
+             <th scope="col" class="govuk-table__header govuk-table__header--numeric">Records added</th>
+           </tr>
+         </thead>
+         <tbody class="govuk-table__body">
+           ${weekOrgs.map(r => `
+             <tr class="govuk-table__row">
+               <td class="govuk-table__cell">${esc(r.name)}</td>
+               <td class="govuk-table__cell govuk-table__cell--numeric">${r.count}</td>
+             </tr>`).join('')}
+         </tbody>
+       </table>`
+    : `<p class="govuk-body">No new records have been added in the last 7 days.</p>`;
+
+  document.getElementById('weekly-content').innerHTML = `
+    <div class="weekly-hero">${total}</div>
+    <p class="weekly-sub">records added in the last 7 days</p>
+    <div class="weekly-ds-grid">${dsBreakdown}</div>
+    ${orgTable}`;
+}
+
+// ── Render all ────────────────────────────────────────────────────────────────
+
+function renderAll() {
+  renderStats();
+  renderLeaderboard();
+  renderHeatmap();
+  renderActivity();
+  renderWeekly();
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+window.GOVUKFrontend.initAll();
+init();
+</script>
+</body>
+</html>
