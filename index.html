@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Planning Data Tracker — MHCLG</title>
-  <link rel="stylesheet" href="https://unpkg.com/govuk-frontend@5.4.1/dist/govuk/govuk-frontend.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/govuk-frontend@5.4.1/dist/govuk/govuk-frontend.min.css">
   <style>
     /* ── Layout ──────────────────────────────────────────────── */
     body { font-family: "GDS Transport", arial, sans-serif; }
@@ -282,7 +282,7 @@
   </div>
 </footer>
 
-<script src="https://unpkg.com/govuk-frontend@5.4.1/dist/govuk/govuk-frontend.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/govuk-frontend@5.4.1/dist/govuk/govuk-frontend.min.js"></script>
 <script>
 'use strict';
 
@@ -435,7 +435,7 @@ async function init() {
     document.getElementById('loading-panel').classList.add('hidden');
     document.getElementById('main-panel').classList.remove('hidden');
 
-    window.GOVUKFrontend.initAll();
+    if (window.GOVUKFrontend) window.GOVUKFrontend.initAll();
 
   } catch (err) {
     document.getElementById('loading-panel').classList.add('hidden');
@@ -729,7 +729,17 @@ function renderAll() {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
-window.GOVUKFrontend.initAll();
+window.onerror = function(msg, src, line, col, err) {
+  const el = document.getElementById('error-panel');
+  const msgEl = document.getElementById('error-msg');
+  if (el && msgEl) {
+    document.getElementById('loading-panel').classList.add('hidden');
+    el.classList.remove('hidden');
+    msgEl.textContent = (err ? err.message : msg) + (line ? ` (line ${line})` : '');
+  }
+};
+
+if (window.GOVUKFrontend) window.GOVUKFrontend.initAll();
 init();
 </script>
 </body>
