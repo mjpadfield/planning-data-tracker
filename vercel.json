@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/planning-api/:path*",
+      "destination": "https://www.planning.data.gov.uk/:path*"
+    }
+  ]
+}
