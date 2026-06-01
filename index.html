@@ -3,37 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Planning Data Tracker — MHCLG</title>
+  <title>Extract AI Impact Tracker — Planning Data</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/govuk-frontend@5.4.1/dist/govuk/govuk-frontend.min.css">
   <style>
-    /* ── Layout ──────────────────────────────────────────────── */
     body { font-family: "GDS Transport", arial, sans-serif; }
 
-    /* ── Stat cards ──────────────────────────────────────────── */
-    .stat-grid {
+    /* ── Completion bars ─────────────────────────────────────── */
+    .completion-strip {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 16px;
       margin-bottom: 32px;
     }
-    .stat-card {
-      border-left: 5px solid #1d70b8;
-      background: #f3f2f1;
-      padding: 16px 20px;
+    .completion-card { background: #f3f2f1; padding: 16px 20px; }
+    .completion-card__label { font-size: 0.875rem; color: #505a5f; margin-bottom: 6px; }
+    .completion-card__nums { font-size: 1.1rem; font-weight: 700; color: #0b0c0c; margin-bottom: 8px; }
+    .completion-card__nums span { font-weight: 400; color: #505a5f; font-size: 0.875rem; }
+    .progress-bar-outer { background: #d8d8d8; border-radius: 2px; height: 8px; }
+    .progress-bar-inner { height: 8px; border-radius: 2px; transition: width 0.6s ease; }
+    .bar-a4d { background: #1d70b8; }
+    .bar-ca  { background: #00703c; }
+    .bar-tpo { background: #f47738; }
+
+    /* ── Hero numbers ────────────────────────────────────────── */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
     }
-    .stat-card.green  { border-color: #00703c; }
-    .stat-card.orange { border-color: #f47738; }
-    .stat-card.purple { border-color: #4c2c92; }
-    .stat-card__number { font-size: 2.25rem; font-weight: 700; line-height: 1; color: #0b0c0c; }
-    .stat-card__label  { font-size: 0.9rem; color: #505a5f; margin-top: 4px; }
+    .hero-card { border-left: 5px solid #1d70b8; background: #f3f2f1; padding: 14px 18px; }
+    .hero-card.green  { border-color: #00703c; }
+    .hero-card.orange { border-color: #f47738; }
+    .hero-card.red    { border-color: #d4351c; }
+    .hero-card__num   { font-size: 2.5rem; font-weight: 700; line-height: 1; color: #0b0c0c; }
+    .hero-card__label { font-size: 0.85rem; color: #505a5f; margin-top: 4px; }
 
-    /* ── Progress bar ────────────────────────────────────────── */
-    .progress-outer { background: #f3f2f1; border-radius: 4px; height: 10px; margin: 16px 0; overflow: hidden; }
-    .progress-inner { background: #1d70b8; height: 10px; border-radius: 4px; transition: width 0.25s ease; }
+    /* ── SVG chart ───────────────────────────────────────────── */
+    #timeline-svg { width: 100%; max-width: 780px; display: block; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 0.875rem; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-swatch { width: 24px; height: 3px; display: inline-block; border-radius: 2px; }
+    .legend-dash { border-top: 2px dashed; width: 24px; display: inline-block; }
 
-    /* ── Scrollable table wrapper ────────────────────────────── */
-    .table-scroll { max-height: 620px; overflow-y: auto; border: 1px solid #b1b4b6; }
-    .table-scroll table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    /* ── Scrollable table ────────────────────────────────────── */
+    .table-scroll { max-height: 600px; overflow-y: auto; border: 1px solid #b1b4b6; }
+    .table-scroll table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
     .table-scroll thead th {
       background: #1d70b8; color: #fff;
       padding: 10px 14px; text-align: left;
@@ -44,74 +59,71 @@
     .table-scroll tbody td { padding: 8px 14px; border-bottom: 1px solid #f3f2f1; vertical-align: middle; }
     .table-scroll tbody tr:hover { background: #f8f8f8; }
 
-    /* ── Data cells in heatmap / leaderboard ─────────────────── */
-    .cell-yes { display: inline-block; min-width: 52px; padding: 3px 8px; border-radius: 3px; text-align: center; font-weight: 600; font-size: 0.85rem; }
-    .cell-yes.a4d { background: #d2e2f1; color: #0b3d91; }
-    .cell-yes.ca  { background: #cce2d8; color: #005a30; }
-    .cell-yes.tpo { background: #fce5d3; color: #6e2e00; }
-    .cell-no      { display: inline-block; min-width: 52px; padding: 3px 8px; border-radius: 3px; text-align: center; color: #b1b4b6; background: #f3f2f1; font-size: 0.85rem; }
+    /* ── Completion cells ────────────────────────────────────── */
+    .cell { display: inline-block; min-width: 80px; padding: 3px 8px; border-radius: 3px; text-align: center; font-size: 0.8rem; font-weight: 600; }
+    .cell-pre    { background: #cce2d8; color: #005a30; }   /* submitted pre-Extract */
+    .cell-post   { background: #d2e2f1; color: #0b3d91; }   /* submitted post-Extract rollout */
+    .cell-none   { background: #f3f2f1; color: #b1b4b6; }   /* not yet */
+    .cell-pilot  { background: #e8d5f5; color: #4c2c92; }   /* submitted during pilot */
 
-    /* ── Sortable headers ────────────────────────────────────── */
+    /* ── Sort ────────────────────────────────────────────────── */
     .sortable { cursor: pointer; user-select: none; }
-    .sortable::after { content: " ↕"; opacity: 0.45; font-size: 0.75rem; }
+    .sortable::after { content: " ↕"; opacity: 0.4; font-size: 0.7rem; }
     .sort-asc::after  { content: " ↑"; opacity: 1; }
     .sort-desc::after { content: " ↓"; opacity: 1; }
 
-    /* ── Score bar ───────────────────────────────────────────── */
-    .bar-bg   { background: #e8e8e8; border-radius: 3px; height: 10px; width: 80px; }
-    .bar-fill { background: #1d70b8; height: 10px; border-radius: 3px; }
-
-    /* ── Rank badges ─────────────────────────────────────────── */
-    .rank { display: inline-block; width: 26px; height: 26px; border-radius: 50%; text-align: center; line-height: 26px; font-size: 0.75rem; font-weight: 700; color: #fff; background: #1d70b8; }
-    .rank.gold   { background: #f3a01f; color: #0b0c0c; }
-    .rank.silver { background: #929191; }
-    .rank.bronze { background: #a1622b; }
-
-    /* ── Filter pills ────────────────────────────────────────── */
+    /* ── Pills ───────────────────────────────────────────────── */
     .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .pill {
-      padding: 5px 14px; border: 2px solid #1d70b8; border-radius: 20px;
-      cursor: pointer; font-size: 0.875rem; background: #fff; color: #1d70b8;
-      font-family: inherit;
-    }
+    .pill { padding: 5px 14px; border: 2px solid #1d70b8; border-radius: 20px; cursor: pointer; font-size: 0.875rem; background: #fff; color: #1d70b8; font-family: inherit; }
     .pill.active, .pill:hover { background: #1d70b8; color: #fff; }
 
     /* ── Activity feed ───────────────────────────────────────── */
-    .feed-date-header {
-      font-size: 1rem; font-weight: 700; color: #0b0c0c;
-      border-bottom: 2px solid #b1b4b6; padding-bottom: 6px; margin: 24px 0 12px;
-    }
-    .feed-item { display: flex; align-items: flex-start; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f3f2f1; }
-    .feed-meta { flex: 1 1 auto; }
-    .feed-name { font-weight: 600; color: #0b0c0c; }
+    .feed-date { font-size: 1rem; font-weight: 700; border-bottom: 2px solid #b1b4b6; padding-bottom: 6px; margin: 24px 0 10px; }
+    .feed-item { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f3f2f1; }
+    .feed-name { font-weight: 600; }
     .feed-org  { font-size: 0.85rem; color: #505a5f; }
-
-    /* ── Weekly ──────────────────────────────────────────────── */
-    .weekly-hero { font-size: 3rem; font-weight: 700; color: #0b0c0c; line-height: 1; }
-    .weekly-sub  { color: #505a5f; margin-top: 4px; margin-bottom: 24px; }
-    .weekly-ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
-    .weekly-ds { border: 2px solid #b1b4b6; padding: 14px 16px; }
-    .weekly-ds__count { font-size: 2rem; font-weight: 700; }
-    .weekly-ds__label { font-size: 0.85rem; color: #505a5f; }
-
-    /* ── Refresh row ─────────────────────────────────────────── */
-    .refresh-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; font-size: 0.9rem; color: #505a5f; }
+    .feed-new-badge { background: #d2e2f1; color: #0b3d91; font-size: 0.75rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
 
     /* ── Misc ────────────────────────────────────────────────── */
     .hidden { display: none !important; }
+    .progress-outer { background: #f3f2f1; border-radius: 4px; height: 10px; margin: 12px 0; overflow: hidden; }
+    .progress-inner { background: #1d70b8; height: 10px; border-radius: 4px; transition: width 0.25s; }
+    .refresh-row { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; font-size: 0.9rem; color: #505a5f; }
     .govuk-tabs__panel { padding-top: 20px; }
+    .bar-score { display: inline-flex; gap: 3px; }
+    .bar-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* ── New completions table on overview ───────────────────── */
+    .new-completions { margin-top: 8px; }
+    .new-completions td, .new-completions th { padding: 8px 12px; font-size: 0.875rem; }
+
+    /* ── Extract AI annotation boxes ────────────────────────── */
+    .extract-callout {
+      border-left: 4px solid #1d70b8;
+      background: #e8f0f8;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .extract-callout strong { color: #0b3d91; }
   </style>
 </head>
 <body class="govuk-template__body">
 
-<!-- ── Header ──────────────────────────────────────────────────────── -->
+<!-- ── Header ──────────────────────────────────────────────────── -->
 <header class="govuk-header" role="banner">
   <div class="govuk-header__container govuk-width-container">
     <div class="govuk-header__logo">
       <a href="#" class="govuk-header__link govuk-header__link--homepage">
         <span class="govuk-header__logotype">
-          <svg aria-hidden="true" focusable="false" class="govuk-header__logotype-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" height="30" width="32">
-            <path fill="currentColor" fill-rule="evenodd" d="M22.6 10.4c-1 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m-5.9 6.7c-.9.4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m10.8-3.7c-1 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m3.3 4.8c-1 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4M17 0L15.3 6H9l1.8 2.5L8 12h6l1.6-2.2L17 12h6l-2.8-3.5L22 6h-6.3L17 0zM0 24l2 6h28l2-6H0z"/>
+          <svg aria-hidden="true" focusable="false" class="govuk-header__logotype-crown"
+               xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" height="30" width="32">
+            <path fill="currentColor" fill-rule="evenodd"
+              d="M22.6 10.4c-1 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m-5.9
+                 6.7c-.9.4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m10.8-3.7c-1
+                 .4-2-.1-2.4-1-.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4m3.3 4.8c-1 .4-2-.1-2.4-1
+                 -.4-.9.1-2 1-2.4.9-.4 2 .1 2.4 1s-.1 2-1 2.4M17 0L15.3 6H9l1.8 2.5L8 12h6l1.6-2.2L17
+                 12h6l-2.8-3.5L22 6h-6.3L17 0zM0 24l2 6h28l2-6H0z"/>
           </svg>
           <span class="govuk-header__logotype-text">GOV.UK</span>
         </span>
@@ -119,7 +131,7 @@
     </div>
     <div class="govuk-header__content">
       <a href="#" class="govuk-header__link govuk-header__link--service-name">
-        Planning Data Tracker
+        Extract AI Impact Tracker
       </a>
     </div>
   </div>
@@ -130,43 +142,41 @@
     <p class="govuk-phase-banner__content">
       <strong class="govuk-tag govuk-phase-banner__content__tag">Beta</strong>
       <span class="govuk-phase-banner__text">
-        Data sourced live from
-        <a class="govuk-link" href="https://www.planning.data.gov.uk" target="_blank" rel="noopener">planning.data.gov.uk</a>
+        Live data from <a class="govuk-link" href="https://www.planning.data.gov.uk" target="_blank" rel="noopener">planning.data.gov.uk</a>
+        · Tracking impact of <a class="govuk-link" href="https://mhclgdigital.blog.gov.uk/2025/06/12/extract-using-ai-to-unlock-historic-planning-data/" target="_blank" rel="noopener">Extract AI</a>
       </span>
     </p>
   </div>
 </div>
 
-<!-- ── Main ────────────────────────────────────────────────────────── -->
+<!-- ── Main ────────────────────────────────────────────────────── -->
 <div class="govuk-width-container">
   <main class="govuk-main-wrapper" id="main-content" role="main">
 
     <div class="govuk-grid-row">
       <div class="govuk-grid-column-two-thirds">
-        <h1 class="govuk-heading-xl" style="margin-bottom: 12px">Planning data submissions tracker</h1>
-        <p class="govuk-body-l">Track which local planning authorities have digitised their
-          <strong>Article 4 Directions</strong>, <strong>Conservation Areas</strong> and
-          <strong>Tree Preservation Orders</strong> on
-          <a class="govuk-link" href="https://www.planning.data.gov.uk" target="_blank" rel="noopener">planning.data.gov.uk</a>.
+        <h1 class="govuk-heading-xl" style="margin-bottom:10px">Extract AI Impact Tracker</h1>
+        <p class="govuk-body-l" style="margin-bottom:24px">
+          Monitoring how many local planning authorities have digitised their
+          Article 4 Directions, Conservation Areas and Tree Preservation Orders
+          to <a class="govuk-link" href="https://www.planning.data.gov.uk" target="_blank" rel="noopener">planning.data.gov.uk</a>.
         </p>
       </div>
     </div>
 
-    <!-- Loading panel -->
+    <!-- Loading -->
     <div id="loading-panel">
       <h2 class="govuk-heading-m" id="loading-msg">Loading data…</h2>
       <div class="progress-outer"><div class="progress-inner" id="progress-bar" style="width:2%"></div></div>
       <p class="govuk-body-s" id="loading-detail" style="color:#505a5f"></p>
-      <p class="govuk-body-s" style="color:#505a5f">
-        This page calls the planning.data.gov.uk API in real time — first load takes 15–30 seconds.
-      </p>
+      <p class="govuk-body-s" style="color:#505a5f">First load takes 20–30 seconds — fetching live data from the planning platform.</p>
     </div>
 
-    <!-- Error panel -->
+    <!-- Error -->
     <div id="error-panel" class="hidden">
       <div class="govuk-error-summary" data-module="govuk-error-summary">
         <div role="alert">
-          <h2 class="govuk-error-summary__title">There was a problem loading data</h2>
+          <h2 class="govuk-error-summary__title">Could not load data</h2>
           <div class="govuk-error-summary__body">
             <p class="govuk-body" id="error-msg"></p>
             <button class="govuk-button govuk-button--secondary" onclick="init()">Try again</button>
@@ -175,71 +185,92 @@
       </div>
     </div>
 
-    <!-- Main content panel (hidden until load) -->
+    <!-- Main content -->
     <div id="main-panel" class="hidden">
 
       <div class="refresh-row">
         <span>Updated: <strong id="last-updated-ts"></strong></span>
-        <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" onclick="refresh()">↻ Refresh data</button>
+        <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" onclick="refresh()">↻ Refresh</button>
       </div>
 
-      <!-- Stat cards -->
-      <div class="stat-grid" id="stat-grid"></div>
+      <!-- Completion strip -->
+      <div class="completion-strip" id="completion-strip"></div>
 
       <!-- Tabs -->
       <div class="govuk-tabs" data-module="govuk-tabs">
         <h2 class="govuk-tabs__title">Contents</h2>
         <ul class="govuk-tabs__list" role="tablist">
           <li class="govuk-tabs__list-item govuk-tabs__list-item--selected" role="presentation">
-            <a class="govuk-tabs__tab" href="#tab-leaderboard" id="tab-leaderboard-tab" role="tab">Leaderboard</a>
+            <a class="govuk-tabs__tab" href="#tab-overview" role="tab">Impact overview</a>
           </li>
           <li class="govuk-tabs__list-item" role="presentation">
-            <a class="govuk-tabs__tab" href="#tab-heatmap" id="tab-heatmap-tab" role="tab">Heatmap</a>
+            <a class="govuk-tabs__tab" href="#tab-timeline" role="tab">Adoption timeline</a>
           </li>
           <li class="govuk-tabs__list-item" role="presentation">
-            <a class="govuk-tabs__tab" href="#tab-activity" id="tab-activity-tab" role="tab">Activity feed</a>
+            <a class="govuk-tabs__tab" href="#tab-map" role="tab">Completion map</a>
           </li>
           <li class="govuk-tabs__list-item" role="presentation">
-            <a class="govuk-tabs__tab" href="#tab-weekly" id="tab-weekly-tab" role="tab">Weekly summary</a>
+            <a class="govuk-tabs__tab" href="#tab-activity" role="tab">Activity feed</a>
           </li>
         </ul>
 
-        <!-- ── Leaderboard tab ──────────────────────────────────── -->
-        <div class="govuk-tabs__panel" id="tab-leaderboard" role="tabpanel">
-          <h2 class="govuk-heading-l">Leaderboard</h2>
-          <p class="govuk-body">Councils ranked by total records submitted. Click column headers to sort.</p>
+        <!-- ── Impact overview ────────────────────────────────── -->
+        <div class="govuk-tabs__panel" id="tab-overview" role="tabpanel">
+          <h2 class="govuk-heading-l">Impact overview</h2>
+          <div id="overview-content"></div>
+        </div>
 
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
-            <div>
-              <label class="govuk-label govuk-!-font-size-16" for="lb-search">Filter by council name</label>
-              <input class="govuk-input govuk-input--width-20" id="lb-search" type="search"
-                     placeholder="e.g. Camden" autocomplete="off"
-                     oninput="filterLeaderboard(this.value)">
-            </div>
-            <div>
-              <label class="govuk-label govuk-!-font-size-16" for="lb-show">Show</label>
-              <select class="govuk-select" id="lb-show" onchange="renderLeaderboard()">
-                <option value="all">All councils</option>
-                <option value="data" selected>With data only</option>
-              </select>
-            </div>
+        <!-- ── Adoption timeline ──────────────────────────────── -->
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-timeline" role="tabpanel">
+          <h2 class="govuk-heading-l">Adoption timeline</h2>
+          <p class="govuk-body">Cumulative number of local planning authorities that have submitted at least one record for each dataset. Each new council completing a dataset is one step up on the line.</p>
+          <div class="extract-callout">
+            <strong>Extract AI pilot launched June 2025</strong> — AI tool to convert historic planning documents to structured data.
+            <strong style="margin-left:12px">Full rollout Spring 2026</strong> — available to all 365 local planning authorities.
           </div>
-
-          <div class="table-scroll" id="lb-table"></div>
+          <div id="timeline-chart-container"></div>
+          <div class="chart-legend" id="chart-legend"></div>
+          <div id="timeline-table" style="margin-top:28px"></div>
         </div>
 
-        <!-- ── Heatmap tab ──────────────────────────────────────── -->
-        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-heatmap" role="tabpanel">
-          <h2 class="govuk-heading-l">Dataset coverage heatmap</h2>
-          <p class="govuk-body">Which datasets each local planning authority has submitted. Filter by region.</p>
+        <!-- ── Completion map ─────────────────────────────────── -->
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-map" role="tabpanel">
+          <h2 class="govuk-heading-l">Completion map</h2>
+          <p class="govuk-body">Which datasets each LPA has completed, and when they first submitted.</p>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;font-size:0.875rem;align-items:center">
+            <span>
+              <span style="display:inline-block;width:12px;height:12px;background:#cce2d8;border-radius:2px;vertical-align:middle"></span>
+              Before Extract AI (pre-June 2025)
+            </span>
+            <span>
+              <span style="display:inline-block;width:12px;height:12px;background:#e8d5f5;border-radius:2px;vertical-align:middle"></span>
+              Extract AI pilot (Jun–Dec 2025)
+            </span>
+            <span>
+              <span style="display:inline-block;width:12px;height:12px;background:#d2e2f1;border-radius:2px;vertical-align:middle"></span>
+              Extract AI rollout (2026+)
+            </span>
+            <span>
+              <span style="display:inline-block;width:12px;height:12px;background:#f3f2f1;border:1px solid #b1b4b6;border-radius:2px;vertical-align:middle"></span>
+              Not yet submitted
+            </span>
+          </div>
           <div class="pills" id="region-pills"></div>
-          <div class="table-scroll" id="hm-table"></div>
+          <div style="margin-bottom:12px">
+            <label class="govuk-label govuk-!-font-size-16" for="map-sort">Sort by</label>
+            <select class="govuk-select" id="map-sort" onchange="renderMap()">
+              <option value="complete-desc">Most datasets completed first</option>
+              <option value="name">Council name (A–Z)</option>
+              <option value="recent">Most recently submitted first</option>
+            </select>
+          </div>
+          <div class="table-scroll" id="map-table"></div>
         </div>
 
-        <!-- ── Activity feed tab ───────────────────────────────── -->
+        <!-- ── Activity feed ──────────────────────────────────── -->
         <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-activity" role="tabpanel">
           <h2 class="govuk-heading-l">Activity feed</h2>
-          <p class="govuk-body">Records added in the last 30 days, newest first.</p>
+          <p class="govuk-body">Records added in the last 30 days, newest first. <span class="feed-new-badge">NEW</span> marks a council's first submission for that dataset.</p>
           <div class="pills" id="activity-pills">
             <button class="pill active" onclick="filterActivity('all',this)">All datasets</button>
             <button class="pill" onclick="filterActivity('article-4-direction',this)">Article 4 Directions</button>
@@ -249,19 +280,13 @@
           <div id="activity-feed"></div>
         </div>
 
-        <!-- ── Weekly summary tab ──────────────────────────────── -->
-        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-weekly" role="tabpanel">
-          <h2 class="govuk-heading-l">Weekly summary</h2>
-          <div id="weekly-content"></div>
-        </div>
-
       </div><!-- /govuk-tabs -->
     </div><!-- /main-panel -->
 
   </main>
 </div>
 
-<!-- ── Footer ──────────────────────────────────────────────────────── -->
+<!-- ── Footer ──────────────────────────────────────────────────── -->
 <footer class="govuk-footer">
   <div class="govuk-width-container">
     <div class="govuk-footer__meta">
@@ -274,9 +299,7 @@
             <a class="govuk-footer__link" href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener">Open Government Licence v3.0</a>
           </li>
         </ul>
-        <p class="govuk-footer__licence-description">
-          Data © Crown copyright and database right 2026
-        </p>
+        <p class="govuk-footer__licence-description">Data © Crown copyright and database right 2026</p>
       </div>
     </div>
   </div>
@@ -286,168 +309,64 @@
 <script>
 'use strict';
 
-// ── Constants ───────────────────────────────────────────────────────────────
+// ── Config ───────────────────────────────────────────────────────────────────
 
-const API = '/planning-api';
+const API              = '/planning-api';
+const TOTAL_LPAS       = 365;
+const EXTRACT_PILOT    = '2025-06-01';   // pilot launch
+const EXTRACT_ROLLOUT  = '2026-03-01';   // full rollout
+const CHART_START      = '2018-01-01';
 
 const DATASETS = [
-  { id: 'article-4-direction',     label: 'Article 4 Directions',     short: 'A4D', cls: 'a4d', tagClass: 'govuk-tag--blue'   },
-  { id: 'conservation-area',       label: 'Conservation Areas',       short: 'CA',  cls: 'ca',  tagClass: 'govuk-tag--green'  },
-  { id: 'tree-preservation-order', label: 'Tree Preservation Orders', short: 'TPO', cls: 'tpo', tagClass: 'govuk-tag--orange' },
+  { id: 'article-4-direction',     label: 'Article 4 Directions',     short: 'A4D', barCls: 'bar-a4d', colour: '#1d70b8', tagCls: 'govuk-tag--blue'   },
+  { id: 'conservation-area',       label: 'Conservation Areas',       short: 'CA',  barCls: 'bar-ca',  colour: '#00703c', tagCls: 'govuk-tag--green'  },
+  { id: 'tree-preservation-order', label: 'Tree Preservation Orders', short: 'TPO', barCls: 'bar-tpo', colour: '#f47738', tagCls: 'govuk-tag--orange' },
 ];
+
+// Datasets we page through entirely (small enough); TPO is count-only
+const FULL_DATASETS = ['article-4-direction', 'conservation-area'];
 
 const LPA_TYPES = new Set(['LBO', 'MD', 'NMD', 'UA', 'CTY', 'CC']);
 
 const REGIONS = {
-  E12000001: 'North East',
-  E12000002: 'North West',
-  E12000003: 'Yorkshire and The Humber',
-  E12000004: 'East Midlands',
-  E12000005: 'West Midlands',
-  E12000006: 'East of England',
-  E12000007: 'London',
-  E12000008: 'South East',
+  E12000001: 'North East',    E12000002: 'North West',
+  E12000003: 'Yorkshire and The Humber', E12000004: 'East Midlands',
+  E12000005: 'West Midlands', E12000006: 'East of England',
+  E12000007: 'London',        E12000008: 'South East',
   E12000009: 'South West',
 };
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 
 let S = {
-  orgs:     [],   // [{entity, name, 'local-authority-type', region}]
-  orgMap:   {},   // entity -> org
-  counts:   {},   // orgEntity -> { datasetId -> count }
-  recent:   [],   // recent entity additions (last 30 days)
-  weekly:   [],   // last 7 days subset
+  orgs: [], orgMap: {},
+  counts:    {},   // orgEntity -> { dsId -> N }
+  firstDate: {},   // orgEntity -> { dsId -> 'YYYY-MM-DD' }
+  recent: [], weekly: [],
   lastUpdated: null,
-
-  // UI state
-  sort:           { col: 'total', dir: 'desc' },
-  lbFilter:       '',
-  regionFilter:   'all',
+  regionFilter: 'all',
   activityFilter: 'all',
+  mapSort: 'complete-desc',
 };
 
-// ── Fetch helpers ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function fetchJSON(url) {
   const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} from ${url}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`);
   return r.json();
 }
 
-async function batchFetch(urls, batchSize = 25, onProgress) {
-  const results = new Array(urls.length).fill(null);
-  for (let i = 0; i < urls.length; i += batchSize) {
-    const slice = urls.slice(i, i + batchSize);
-    const settled = await Promise.allSettled(slice.map(fetchJSON));
-    settled.forEach((r, j) => {
-      results[i + j] = r.status === 'fulfilled' ? r.value : null;
-    });
-    if (onProgress) onProgress(Math.min(i + batchSize, urls.length), urls.length);
+async function batchFetch(urls, size = 25, onProgress) {
+  const out = new Array(urls.length).fill(null);
+  for (let i = 0; i < urls.length; i += size) {
+    const slice = urls.slice(i, i + size);
+    const res = await Promise.allSettled(slice.map(fetchJSON));
+    res.forEach((r, j) => { out[i + j] = r.status === 'fulfilled' ? r.value : null; });
+    if (onProgress) onProgress(Math.min(i + size, urls.length), urls.length);
   }
-  return results;
+  return out;
 }
-
-// ── Data loading ─────────────────────────────────────────────────────────────
-
-async function loadOrgs() {
-  setProgress(3, 'Loading organisation list…');
-  const d = await fetchJSON(`${API}/organisation.json`);
-  // organisations is a nested object keyed by type, each value is an array
-  Object.values(d.organisations).flat().forEach(o => {
-    if (LPA_TYPES.has(o['local-authority-type'])) {
-      S.orgs.push(o);
-      S.orgMap[o.entity] = o;
-    }
-  });
-  S.orgs.sort((a, b) => a.name.localeCompare(b.name));
-}
-
-async function loadCounts() {
-  const urls = [];
-  for (const org of S.orgs) {
-    for (const ds of DATASETS) {
-      urls.push(`${API}/entity.json?dataset=${ds.id}&organisation_entity=${org.entity}&limit=1`);
-    }
-  }
-  const results = await batchFetch(urls, 25, (done, total) => {
-    const pct = 8 + Math.round((done / total) * 62);
-    setProgress(pct, `Fetching submission counts… (${done} / ${total})`);
-  });
-
-  let idx = 0;
-  for (const org of S.orgs) {
-    S.counts[org.entity] = {};
-    for (const ds of DATASETS) {
-      const r = results[idx++];
-      S.counts[org.entity][ds.id] = r ? (parseInt(r.count, 10) || 0) : 0;
-    }
-  }
-}
-
-async function loadRecent() {
-  setProgress(74, 'Loading recent activity…');
-  const today = new Date();
-  const cutoff30 = new Date(today - 30 * 864e5);
-  const { y30, m30, d30 } = { y30: cutoff30.getFullYear(), m30: cutoff30.getMonth() + 1, d30: cutoff30.getDate() };
-
-  for (const ds of DATASETS) {
-    try {
-      const url = `${API}/entity.json?dataset=${ds.id}` +
-        `&entry_date_year=${y30}&entry_date_month=${m30}&entry_date_day=${d30}` +
-        `&entry_date_match=since&limit=500`;
-      const data = await fetchJSON(url);
-      data.entities
-        .filter(e => e['entry-date'])
-        .forEach(e => S.recent.push({ ...e, _ds: ds.id }));
-    } catch (err) {
-      console.warn('Recent load failed for', ds.id, err);
-    }
-  }
-
-  S.recent.sort((a, b) => b['entry-date'].localeCompare(a['entry-date']));
-
-  const cutoff7 = new Date(today - 7 * 864e5).toISOString().split('T')[0];
-  S.weekly = S.recent.filter(e => e['entry-date'] >= cutoff7);
-}
-
-// ── Orchestration ─────────────────────────────────────────────────────────────
-
-async function init() {
-  // Reset state
-  S = { orgs: [], orgMap: {}, counts: {}, recent: [], weekly: [], lastUpdated: null,
-        sort: { col: 'total', dir: 'desc' }, lbFilter: '', regionFilter: 'all', activityFilter: 'all' };
-
-  document.getElementById('loading-panel').classList.remove('hidden');
-  document.getElementById('main-panel').classList.add('hidden');
-  document.getElementById('error-panel').classList.add('hidden');
-
-  try {
-    await loadOrgs();
-    await loadCounts();
-    await loadRecent();
-
-    setProgress(96, 'Rendering…');
-    S.lastUpdated = new Date();
-
-    renderAll();
-
-    document.getElementById('loading-panel').classList.add('hidden');
-    document.getElementById('main-panel').classList.remove('hidden');
-
-    if (window.GOVUKFrontend) window.GOVUKFrontend.initAll();
-
-  } catch (err) {
-    document.getElementById('loading-panel').classList.add('hidden');
-    document.getElementById('error-panel').classList.remove('hidden');
-    document.getElementById('error-msg').textContent = err.message;
-    console.error(err);
-  }
-}
-
-function refresh() { init(); }
-
-// ── UI helpers ────────────────────────────────────────────────────────────────
 
 function setProgress(pct, msg) {
   document.getElementById('progress-bar').style.width = pct + '%';
@@ -460,167 +379,477 @@ function esc(s) {
 
 function fmtDate(d) {
   if (!d) return '–';
-  try {
-    return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch { return d; }
+  try { return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); }
+  catch { return d; }
 }
 
-function orgTotal(entity) {
-  const c = S.counts[entity] || {};
-  return DATASETS.reduce((s, ds) => s + (c[ds.id] || 0), 0);
+function orgName(id) { return S.orgMap[id]?.name ?? `Organisation ${id}`; }
+
+function completionCount(entity) {
+  return DATASETS.filter(ds => (S.counts[entity]?.[ds.id] || 0) > 0).length;
 }
 
-function orgName(entity) {
-  return S.orgMap[entity]?.name ?? `Organisation ${entity}`;
+function cellClass(dsId, orgEntity) {
+  const fd = S.firstDate[orgEntity]?.[dsId];
+  if (!fd && !(S.counts[orgEntity]?.[dsId] > 0)) return 'cell-none';
+  if (!fd) return 'cell-pre'; // TPO has counts but no dates
+  if (fd >= EXTRACT_ROLLOUT) return 'cell-post';
+  if (fd >= EXTRACT_PILOT)   return 'cell-pilot';
+  return 'cell-pre';
 }
 
-// ── Stat cards ────────────────────────────────────────────────────────────────
-
-function renderStats() {
-  const orgsWithAny = S.orgs.filter(o => orgTotal(o.entity) > 0).length;
-  const totals = Object.fromEntries(
-    DATASETS.map(ds => [ds.id, S.orgs.reduce((s, o) => s + (S.counts[o.entity]?.[ds.id] || 0), 0)])
-  );
-
-  const cards = [
-    { n: orgsWithAny,                             label: `of ${S.orgs.length} LPAs have submitted data`, cls: '' },
-    { n: totals['article-4-direction'].toLocaleString(), label: 'Article 4 Directions',     cls: '' },
-    { n: totals['conservation-area'].toLocaleString(),   label: 'Conservation Areas',       cls: 'green' },
-    { n: totals['tree-preservation-order'].toLocaleString(), label: 'Tree Preservation Orders', cls: 'orange' },
-    { n: S.weekly.length,                         label: 'records added this week',      cls: 'purple' },
-  ];
-
-  document.getElementById('stat-grid').innerHTML = cards.map(c =>
-    `<div class="stat-card ${c.cls}"><div class="stat-card__number">${c.n}</div><div class="stat-card__label">${c.label}</div></div>`
-  ).join('');
-
-  document.getElementById('last-updated-ts').textContent =
-    S.lastUpdated.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+function cellLabel(dsId, orgEntity) {
+  const fd = S.firstDate[orgEntity]?.[dsId];
+  const count = S.counts[orgEntity]?.[dsId] || 0;
+  if (!count) return '–';
+  if (!fd) return count.toLocaleString();
+  return fmtDate(fd);
 }
 
-// ── Leaderboard ───────────────────────────────────────────────────────────────
+// ── Loading ───────────────────────────────────────────────────────────────────
 
-function filterLeaderboard(val) {
-  S.lbFilter = val;
-  renderLeaderboard();
-}
-
-function sortLeaderboard(col) {
-  S.sort = (S.sort.col === col)
-    ? { col, dir: S.sort.dir === 'desc' ? 'asc' : 'desc' }
-    : { col, dir: col === 'name' ? 'asc' : 'desc' };
-  renderLeaderboard();
-}
-
-function renderLeaderboard() {
-  const filter  = (S.lbFilter || '').toLowerCase();
-  const showAll = document.getElementById('lb-show')?.value === 'all';
-
-  let rows = S.orgs.map(o => ({
-    org:   o,
-    total: orgTotal(o.entity),
-    c:     S.counts[o.entity] || {},
-  }));
-
-  if (!showAll) rows = rows.filter(r => r.total > 0);
-  if (filter)   rows = rows.filter(r => r.org.name.toLowerCase().includes(filter));
-
-  const { col, dir } = S.sort;
-  rows.sort((a, b) => {
-    let av, bv;
-    if (col === 'name')  { return dir === 'asc' ? a.org.name.localeCompare(b.org.name) : b.org.name.localeCompare(a.org.name); }
-    if (col === 'total') { av = a.total; bv = b.total; }
-    else                 { av = a.c[col] || 0; bv = b.c[col] || 0; }
-    return dir === 'asc' ? av - bv : bv - av;
+async function loadOrgs() {
+  setProgress(3, 'Loading organisation list…');
+  const d = await fetchJSON(`${API}/organisation.json`);
+  Object.values(d.organisations).flat().forEach(o => {
+    if (LPA_TYPES.has(o['local-authority-type'])) {
+      S.orgs.push(o);
+      S.orgMap[o.entity] = o;
+    }
   });
+  S.orgs.sort((a, b) => a.name.localeCompare(b.name));
+}
 
-  const maxTotal = Math.max(...rows.map(r => r.total), 1);
+async function loadFullDataset(dsId, startPct, rangePct) {
+  let offset = 0, total = Infinity;
+  while (offset < total) {
+    const d = await fetchJSON(`${API}/entity.json?dataset=${dsId}&limit=500&offset=${offset}`);
+    if (offset === 0) total = parseInt(d.count, 10);
+    for (const e of d.entities) {
+      const org  = e['organisation-entity'];
+      const date = e['entry-date'];
+      if (!org) continue;
+      // Count
+      if (!S.counts[org]) S.counts[org] = {};
+      S.counts[org][dsId] = (S.counts[org][dsId] || 0) + 1;
+      // First date
+      if (date) {
+        if (!S.firstDate[org]) S.firstDate[org] = {};
+        if (!S.firstDate[org][dsId] || date < S.firstDate[org][dsId]) {
+          S.firstDate[org][dsId] = date;
+        }
+      }
+    }
+    offset += 500;
+    const pct = startPct + Math.round((Math.min(offset, total) / total) * rangePct);
+    setProgress(pct, `Loading ${dsId} records… (${Math.min(offset,total).toLocaleString()} / ${total.toLocaleString()})`);
+  }
+}
 
-  function thSort(col, label) {
-    const cls = S.sort.col === col ? `sort-${S.sort.dir}` : '';
-    return `<th class="sortable center ${cls}" onclick="sortLeaderboard('${col}')">${label}</th>`;
+async function loadTPOCounts() {
+  const dsId = 'tree-preservation-order';
+  const urls = S.orgs.map(o => `${API}/entity.json?dataset=${dsId}&organisation_entity=${o.entity}&limit=1`);
+  const results = await batchFetch(urls, 25, (done, total) => {
+    const pct = 40 + Math.round((done / total) * 35);
+    setProgress(pct, `Fetching TPO counts… (${done} / ${total})`);
+  });
+  S.orgs.forEach((org, i) => {
+    const r = results[i];
+    const count = r ? (parseInt(r.count, 10) || 0) : 0;
+    if (!S.counts[org.entity]) S.counts[org.entity] = {};
+    S.counts[org.entity][dsId] = count;
+  });
+}
+
+async function loadRecent() {
+  setProgress(78, 'Loading recent activity…');
+  const today = new Date();
+  const c30 = new Date(today - 30 * 864e5);
+  const y = c30.getFullYear(), m = c30.getMonth() + 1, day = c30.getDate();
+  for (const ds of DATASETS) {
+    try {
+      const url = `${API}/entity.json?dataset=${ds.id}&entry_date_year=${y}&entry_date_month=${m}&entry_date_day=${day}&entry_date_match=since&limit=500`;
+      const data = await fetchJSON(url);
+      data.entities.filter(e => e['entry-date']).forEach(e => S.recent.push({ ...e, _ds: ds.id }));
+    } catch (err) { console.warn('recent load failed', ds.id, err); }
+  }
+  S.recent.sort((a, b) => b['entry-date'].localeCompare(a['entry-date']));
+  const c7 = new Date(today - 7 * 864e5).toISOString().split('T')[0];
+  S.weekly = S.recent.filter(e => e['entry-date'] >= c7);
+}
+
+async function init() {
+  S = { orgs:[], orgMap:{}, counts:{}, firstDate:{}, recent:[], weekly:[], lastUpdated:null,
+        regionFilter:'all', activityFilter:'all', mapSort:'complete-desc' };
+  document.getElementById('loading-panel').classList.remove('hidden');
+  document.getElementById('main-panel').classList.add('hidden');
+  document.getElementById('error-panel').classList.add('hidden');
+  try {
+    await loadOrgs();
+    await loadFullDataset('article-4-direction', 5, 15);
+    await loadFullDataset('conservation-area', 20, 20);
+    await loadTPOCounts();
+    await loadRecent();
+    setProgress(96, 'Rendering…');
+    S.lastUpdated = new Date();
+    renderAll();
+    document.getElementById('loading-panel').classList.add('hidden');
+    document.getElementById('main-panel').classList.remove('hidden');
+    if (window.GOVUKFrontend) window.GOVUKFrontend.initAll();
+  } catch (err) {
+    document.getElementById('loading-panel').classList.add('hidden');
+    document.getElementById('error-panel').classList.remove('hidden');
+    document.getElementById('error-msg').textContent = err.message;
+    console.error(err);
+  }
+}
+
+function refresh() { init(); }
+
+// ── Completion strip ──────────────────────────────────────────────────────────
+
+function renderCompletionStrip() {
+  document.getElementById('last-updated-ts').textContent =
+    S.lastUpdated.toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' });
+
+  const html = DATASETS.map(ds => {
+    const n = S.orgs.filter(o => (S.counts[o.entity]?.[ds.id] || 0) > 0).length;
+    const pct = Math.round((n / TOTAL_LPAS) * 100);
+    return `<div class="completion-card">
+      <div class="completion-card__label">${esc(ds.label)}</div>
+      <div class="completion-card__nums">${n} <span>/ ${TOTAL_LPAS} LPAs (${pct}%)</span></div>
+      <div class="progress-bar-outer"><div class="progress-bar-inner ${ds.barCls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('completion-strip').innerHTML = html;
+}
+
+// ── Impact overview ───────────────────────────────────────────────────────────
+
+function renderOverview() {
+  // New completions since each Extract AI milestone (A4D + CA only — we have dates)
+  function newSince(date) {
+    let count = 0;
+    for (const ds of FULL_DATASETS) {
+      for (const org of S.orgs) {
+        const fd = S.firstDate[org.entity]?.[ds];
+        if (fd && fd >= date) count++;
+      }
+    }
+    return count;
   }
 
-  const thead = `<thead><tr>
-    <th style="width:36px">#</th>
-    <th class="sortable ${S.sort.col==='name'?`sort-${S.sort.dir}`:''}" onclick="sortLeaderboard('name')">Council</th>
-    ${DATASETS.map(ds => thSort(ds.id, ds.short)).join('')}
-    ${thSort('total','Total')}
-    <th style="width:90px"></th>
-  </tr></thead>`;
+  const sincePilot    = newSince(EXTRACT_PILOT);
+  const sinceRollout  = newSince(EXTRACT_ROLLOUT);
+  const notStarted    = S.orgs.filter(o => completionCount(o.entity) === 0).length;
+  const allComplete   = S.orgs.filter(o => completionCount(o.entity) === 3).length;
+  const weeklyNew     = S.weekly.length;
 
-  const tbody = rows.map((r, i) => {
-    const rank = i + 1;
-    const rankBadge = rank === 1 ? `<span class="rank gold">1</span>`
-                    : rank === 2 ? `<span class="rank silver">2</span>`
-                    : rank === 3 ? `<span class="rank bronze">3</span>`
-                    : `<span style="color:#505a5f;font-size:0.8rem">${rank}</span>`;
-    const barW = Math.round((r.total / maxTotal) * 80);
+  // Build list of recent "first ever" completions
+  const firstEvers = [];
+  for (const ds of DATASETS) {
+    for (const org of S.orgs) {
+      const fd = S.firstDate[org.entity]?.[ds.id];
+      if (fd && fd >= EXTRACT_ROLLOUT) {
+        firstEvers.push({ org: S.orgMap[org.entity], ds, date: fd });
+      }
+    }
+  }
+  firstEvers.sort((a, b) => b.date.localeCompare(a.date));
 
-    return `<tr>
-      <td>${rankBadge}</td>
-      <td><strong>${esc(r.org.name)}</strong></td>
-      ${DATASETS.map(ds => `<td style="text-align:center">
-        ${r.c[ds.id] > 0
-          ? `<span class="cell-yes ${ds.cls}">${r.c[ds.id].toLocaleString()}</span>`
-          : `<span class="cell-no">–</span>`}
-      </td>`).join('')}
-      <td style="text-align:center"><strong>${r.total.toLocaleString()}</strong></td>
-      <td><div class="bar-bg"><div class="bar-fill" style="width:${barW}px"></div></div></td>
-    </tr>`;
-  }).join('');
+  const heroCards = `
+    <div class="hero-grid">
+      <div class="hero-card green">
+        <div class="hero-card__num">${sinceRollout}</div>
+        <div class="hero-card__label">new dataset completions since Extract AI rollout (Mar 2026)</div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-card__num">${sincePilot}</div>
+        <div class="hero-card__label">new completions since Extract AI pilot (Jun 2025)</div>
+      </div>
+      <div class="hero-card orange">
+        <div class="hero-card__num">${weeklyNew}</div>
+        <div class="hero-card__label">records added this week</div>
+      </div>
+      <div class="hero-card${notStarted > 50 ? ' red' : ''}">
+        <div class="hero-card__num">${notStarted}</div>
+        <div class="hero-card__label">LPAs yet to submit any dataset</div>
+      </div>
+      <div class="hero-card green">
+        <div class="hero-card__num">${allComplete}</div>
+        <div class="hero-card__label">LPAs with all 3 datasets complete</div>
+      </div>
+    </div>`;
 
-  document.getElementById('lb-table').innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+  const note = `<p class="govuk-body-s" style="color:#505a5f;margin-top:-8px;margin-bottom:24px">
+    Note: "New completions" counts A4D and CA only — TPO timeline data is not available for this period. Completions defined as a council's first ever record in a dataset.
+  </p>`;
+
+  const recentTable = firstEvers.length ? `
+    <h3 class="govuk-heading-m">Councils that completed a dataset since Extract AI rollout (2026)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Council</th>
+          <th>Dataset</th>
+          <th>First submitted</th>
+        </tr></thead>
+        <tbody>
+          ${firstEvers.slice(0, 100).map(r => `<tr>
+            <td>${esc(r.org?.name ?? '–')}</td>
+            <td><strong class="govuk-tag ${r.ds.tagCls}">${esc(r.ds.short)}</strong></td>
+            <td>${fmtDate(r.date)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : `<p class="govuk-body">No new completions recorded since ${fmtDate(EXTRACT_ROLLOUT)}.</p>`;
+
+  const notStartedList = S.orgs.filter(o => completionCount(o.entity) === 0);
+  const notStartedTable = `
+    <h3 class="govuk-heading-m" style="margin-top:32px">LPAs yet to submit any dataset (${notStartedList.length})</h3>
+    <p class="govuk-body-s" style="color:#505a5f">These councils have no records on the platform for any of the three tracked datasets.</p>
+    <div class="table-scroll" style="max-height:300px">
+      <table>
+        <thead><tr><th>Council</th><th>Type</th><th>Region</th></tr></thead>
+        <tbody>
+          ${notStartedList.map(o => `<tr>
+            <td>${esc(o.name)}</td>
+            <td><strong class="govuk-tag govuk-tag--grey govuk-!-font-size-14">${esc(o['local-authority-type'])}</strong></td>
+            <td>${esc(REGIONS[o.region] || '–')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  document.getElementById('overview-content').innerHTML = heroCards + note + recentTable + notStartedTable;
 }
 
-// ── Heatmap ───────────────────────────────────────────────────────────────────
+// ── Timeline chart ────────────────────────────────────────────────────────────
 
-function filterHeatmap(region, btn) {
+function buildSeries(dsId) {
+  const CS = CHART_START;
+  const firsts = Object.entries(S.firstDate)
+    .map(([org, d]) => d[dsId])
+    .filter(Boolean)
+    .sort();
+
+  const priorCount = firsts.filter(d => d < CS).length;
+  const series = [{ date: CS, count: priorCount }];
+  firsts.filter(d => d >= CS).forEach((date, i) => {
+    series.push({ date, count: priorCount + i + 1 });
+  });
+  // Extend to today
+  const today = new Date().toISOString().split('T')[0];
+  if (series[series.length - 1].date < today) {
+    series.push({ date: today, count: series[series.length - 1].count });
+  }
+  return series;
+}
+
+function renderTimeline() {
+  const CW = 700, CH = 240;
+  const M  = { top: 28, right: 24, bottom: 42, left: 50 };
+  const IW = CW - M.left - M.right;
+  const IH = CH - M.top - M.bottom;
+
+  const xMin = new Date(CHART_START).getTime();
+  const xMax = new Date().getTime();
+  const yMax = TOTAL_LPAS;
+
+  const xs = t => ((new Date(t).getTime() - xMin) / (xMax - xMin)) * IW;
+  const ys = v => IH - (v / yMax) * IH;
+
+  function linePath(series) {
+    return series.map((p, i) => {
+      const x = xs(p.date).toFixed(1);
+      const y = ys(p.count).toFixed(1);
+      if (i === 0) return `M${x},${y}`;
+      const px = xs(series[i-1].date).toFixed(1);
+      const py = ys(series[i-1].count).toFixed(1);
+      return `L${px},${py} L${x},${py} L${x},${y}`;
+    }).join(' ');
+  }
+
+  // Build series for full datasets only
+  const lines = FULL_DATASETS.map(dsId => ({
+    ds: DATASETS.find(d => d.id === dsId),
+    series: buildSeries(dsId),
+  }));
+
+  // Y grid + labels
+  const yTicks = [0, 50, 100, 150, 200, 250, 300, 365].filter(v => v <= yMax);
+  const gridLines = yTicks.map(v =>
+    `<line x1="0" y1="${ys(v).toFixed(1)}" x2="${IW}" y2="${ys(v).toFixed(1)}" stroke="#e8e8e8" stroke-width="1"/>
+     <text x="-6" y="${(ys(v) + 4).toFixed(1)}" fill="#505a5f" font-size="11" text-anchor="end">${v}</text>`
+  ).join('');
+
+  // X axis year labels
+  const startYear = parseInt(CHART_START.slice(0,4));
+  const endYear   = new Date().getFullYear();
+  const xLabels = [];
+  for (let y = startYear; y <= endYear; y++) {
+    const x = xs(`${y}-01-01`).toFixed(1);
+    xLabels.push(`<line x1="${x}" y1="${IH}" x2="${x}" y2="${IH + 5}" stroke="#505a5f" stroke-width="1"/>
+                  <text x="${x}" y="${IH + 18}" fill="#505a5f" font-size="11" text-anchor="middle">${y}</text>`);
+  }
+
+  // Extract AI markers
+  const pilotX    = xs(EXTRACT_PILOT).toFixed(1);
+  const rolloutX  = xs(EXTRACT_ROLLOUT).toFixed(1);
+
+  const markers = `
+    <line x1="${pilotX}" y1="0" x2="${pilotX}" y2="${IH}" stroke="#9b59b6" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <text x="${pilotX}" y="-10" fill="#9b59b6" font-size="10" text-anchor="middle">Pilot</text>
+    <text x="${pilotX}" y="-2"  fill="#9b59b6" font-size="10" text-anchor="middle">Jun 25</text>
+    <line x1="${rolloutX}" y1="0" x2="${rolloutX}" y2="${IH}" stroke="#d4351c" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <text x="${rolloutX}" y="-10" fill="#d4351c" font-size="10" text-anchor="middle">Rollout</text>
+    <text x="${rolloutX}" y="-2"  fill="#d4351c" font-size="10" text-anchor="middle">Mar 26</text>`;
+
+  // Dataset paths
+  const paths = lines.map(({ ds, series }) =>
+    `<path d="${linePath(series)}" fill="none" stroke="${ds.colour}" stroke-width="2.5" stroke-linejoin="round"/>`
+  ).join('');
+
+  // Final current-count dots
+  const dots = lines.map(({ ds, series }) => {
+    const last = series[series.length - 1];
+    return `<circle cx="${xs(last.date).toFixed(1)}" cy="${ys(last.count).toFixed(1)}" r="4" fill="${ds.colour}"/>`;
+  }).join('');
+
+  const svgContent = `
+    <g transform="translate(${M.left},${M.top})">
+      ${gridLines}
+      <line x1="0" y1="0" x2="0" y2="${IH}" stroke="#505a5f" stroke-width="1"/>
+      <line x1="0" y1="${IH}" x2="${IW}" y2="${IH}" stroke="#505a5f" stroke-width="1"/>
+      ${xLabels.join('')}
+      ${markers}
+      ${paths}
+      ${dots}
+      <text x="-${M.left - 4}" y="${(IH / 2).toFixed(0)}" fill="#505a5f" font-size="11"
+            text-anchor="middle" transform="rotate(-90,-${M.left - 14},${(IH/2).toFixed(0)})">LPAs completed</text>
+    </g>`;
+
+  const svg = `<svg id="timeline-svg" viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg">${svgContent}</svg>`;
+  document.getElementById('timeline-chart-container').innerHTML = svg;
+
+  // Legend
+  const legendItems = lines.map(({ ds, series }) => {
+    const n = series[series.length - 1].count;
+    return `<div class="legend-item">
+      <span class="legend-swatch" style="background:${ds.colour};height:3px"></span>
+      <span>${esc(ds.label)}: <strong>${n}</strong> / ${TOTAL_LPAS}</span>
+    </div>`;
+  });
+  legendItems.push(`
+    <div class="legend-item">
+      <span class="legend-dash" style="border-color:#9b59b6"></span>
+      <span>Extract AI pilot (Jun 2025)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dash" style="border-color:#d4351c"></span>
+      <span>Full rollout (Mar 2026)</span>
+    </div>`);
+  document.getElementById('chart-legend').innerHTML = legendItems.join('');
+
+  // Table: new completions per year
+  const years = {};
+  for (const { ds, series } of lines) {
+    series.forEach((p, i) => {
+      const yr = p.date.slice(0, 4);
+      if (!years[yr]) years[yr] = {};
+      if (i > 0) {
+        const prev = series[i - 1];
+        const newThisStep = p.count - prev.count;
+        years[yr][ds.id] = (years[yr][ds.id] || 0) + newThisStep;
+      }
+    });
+  }
+
+  const sortedYears = Object.keys(years).sort();
+  const tableHTML = `
+    <h3 class="govuk-heading-m">New LPA completions per year</h3>
+    <table class="govuk-table">
+      <thead class="govuk-table__head"><tr class="govuk-table__row">
+        <th class="govuk-table__header">Year</th>
+        ${FULL_DATASETS.map(dsId => `<th class="govuk-table__header govuk-table__header--numeric">${DATASETS.find(d=>d.id===dsId).short}</th>`).join('')}
+        <th class="govuk-table__header govuk-table__header--numeric">Total</th>
+        <th class="govuk-table__header"></th>
+      </tr></thead>
+      <tbody class="govuk-table__body">
+        ${sortedYears.map(yr => {
+          const vals = FULL_DATASETS.map(dsId => years[yr][dsId] || 0);
+          const total = vals.reduce((a, b) => a + b, 0);
+          const isExtract = yr >= '2025';
+          return `<tr class="govuk-table__row">
+            <td class="govuk-table__cell"><strong>${yr}</strong>${isExtract ? ' <strong class="govuk-tag govuk-tag--purple govuk-!-font-size-14">Extract AI</strong>' : ''}</td>
+            ${vals.map(v => `<td class="govuk-table__cell govuk-table__cell--numeric">${v || '–'}</td>`).join('')}
+            <td class="govuk-table__cell govuk-table__cell--numeric"><strong>${total || '–'}</strong></td>
+            <td class="govuk-table__cell">${'▓'.repeat(Math.min(Math.round(total / 2), 50))}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  document.getElementById('timeline-table').innerHTML = tableHTML;
+}
+
+// ── Completion map ────────────────────────────────────────────────────────────
+
+function filterMap(region, btn) {
   S.regionFilter = region;
   document.querySelectorAll('#region-pills .pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderHeatmap();
+  renderMap();
 }
 
-function renderHeatmap() {
-  // Build region pill list
-  const usedRegions = new Set(S.orgs.map(o => o.region).filter(Boolean));
-  const pillHTML = [['all', 'All regions'], ...Object.entries(REGIONS).filter(([k]) => usedRegions.has(k))]
-    .map(([k, v]) => `<button class="pill${k === S.regionFilter ? ' active' : ''}" onclick="filterHeatmap('${k}',this)">${esc(v)}</button>`)
-    .join('');
-  document.getElementById('region-pills').innerHTML = pillHTML;
+function renderMap() {
+  // Region pills
+  const used = new Set(S.orgs.map(o => o.region).filter(Boolean));
+  document.getElementById('region-pills').innerHTML =
+    [['all','All regions'], ...Object.entries(REGIONS).filter(([k]) => used.has(k))]
+      .map(([k, v]) => `<button class="pill${k===S.regionFilter?' active':''}" onclick="filterMap('${k}',this)">${esc(v)}</button>`)
+      .join('');
 
-  const orgs = S.regionFilter === 'all'
-    ? S.orgs
-    : S.orgs.filter(o => o.region === S.regionFilter);
+  let orgs = S.regionFilter === 'all' ? S.orgs : S.orgs.filter(o => o.region === S.regionFilter);
+
+  const sort = document.getElementById('map-sort')?.value ?? 'complete-desc';
+  if (sort === 'complete-desc') {
+    orgs = [...orgs].sort((a, b) => completionCount(b.entity) - completionCount(a.entity) || a.name.localeCompare(b.name));
+  } else if (sort === 'name') {
+    orgs = [...orgs].sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sort === 'recent') {
+    orgs = [...orgs].sort((a, b) => {
+      const la = Math.max(...DATASETS.map(ds => new Date(S.firstDate[a.entity]?.[ds.id] || '1900').getTime()));
+      const lb = Math.max(...DATASETS.map(ds => new Date(S.firstDate[b.entity]?.[ds.id] || '1900').getTime()));
+      return lb - la;
+    });
+  }
 
   const thead = `<thead><tr>
     <th>Council</th>
-    <th>Type</th>
     ${DATASETS.map(ds => `<th class="center">${esc(ds.short)}</th>`).join('')}
-    <th class="center">Coverage</th>
+    <th class="center">Datasets</th>
   </tr></thead>`;
 
   const tbody = orgs.map(org => {
-    const c = S.counts[org.entity] || {};
-    const score = DATASETS.filter(ds => (c[ds.id] || 0) > 0).length;
-    const dots = DATASETS.map((ds, i) =>
-      `<span style="color:${c[ds.id]>0?['#1d70b8','#00703c','#f47738'][i]:'#d8d8d8'};font-size:1.2rem">●</span>`
-    ).join(' ');
+    const score = completionCount(org.entity);
+    const dots = DATASETS.map((ds, i) => {
+      const done = (S.counts[org.entity]?.[ds.id] || 0) > 0;
+      const c = ['#1d70b8','#00703c','#f47738'][i];
+      return `<span style="color:${done ? c : '#d8d8d8'};font-size:1.1rem">●</span>`;
+    }).join(' ');
 
     return `<tr>
-      <td>${esc(org.name)}</td>
-      <td><strong class="govuk-tag govuk-tag--grey govuk-!-font-size-14">${esc(org['local-authority-type'])}</strong></td>
-      ${DATASETS.map(ds => `<td style="text-align:center">
-        ${c[ds.id] > 0
-          ? `<span class="cell-yes ${ds.cls}">${c[ds.id].toLocaleString()}</span>`
-          : `<span class="cell-no">–</span>`}
-      </td>`).join('')}
+      <td style="font-size:0.875rem"><strong>${esc(org.name)}</strong></td>
+      ${DATASETS.map(ds => {
+        const cls   = cellClass(ds.id, org.entity);
+        const label = cellLabel(ds.id, org.entity);
+        return `<td style="text-align:center"><span class="cell ${cls}" style="min-width:90px">${esc(label)}</span></td>`;
+      }).join('')}
       <td style="text-align:center">${dots} <span style="color:#505a5f;font-size:0.75rem">${score}/3</span></td>
     </tr>`;
   }).join('');
 
-  document.getElementById('hm-table').innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+  document.getElementById('map-table').innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
 }
 
 // ── Activity feed ─────────────────────────────────────────────────────────────
@@ -638,93 +867,43 @@ function renderActivity() {
     : S.recent.filter(e => e._ds === S.activityFilter);
 
   if (!items.length) {
-    document.getElementById('activity-feed').innerHTML =
-      `<p class="govuk-body">No records found for the selected dataset in the last 30 days.</p>`;
+    document.getElementById('activity-feed').innerHTML = `<p class="govuk-body">No records found in the last 30 days.</p>`;
     return;
   }
 
-  // Group by date
   const byDate = {};
-  items.forEach(e => {
-    const d = e['entry-date'] || 'Unknown';
-    (byDate[d] = byDate[d] || []).push(e);
-  });
+  items.forEach(e => { const d = e['entry-date'] || 'Unknown'; (byDate[d] = byDate[d] || []).push(e); });
 
   const html = Object.entries(byDate).map(([date, entries]) => {
-    const items = entries.map(e => {
-      const ds = DATASETS.find(d => d.id === e._ds);
+    const rows = entries.map(e => {
+      const ds  = DATASETS.find(d => d.id === e._ds);
+      const org = e['organisation-entity'];
       const name = e.name || e.reference || `Entity ${e.entity}`;
-      const org  = e['organisation-entity'] ? orgName(e['organisation-entity']) : 'Unknown authority';
+      // Is this a first-ever submission for this org+dataset?
+      const fd = S.firstDate[org]?.[e._ds];
+      const isFirst = fd && fd === date;
       return `<div class="feed-item">
-        <div><strong class="govuk-tag ${ds?.tagClass || ''}">${esc(ds?.short)}</strong></div>
-        <div class="feed-meta">
-          <div class="feed-name">${esc(name)}</div>
-          <div class="feed-org">${esc(org)}</div>
+        <div><strong class="govuk-tag ${ds?.tagCls || ''}">${esc(ds?.short || '?')}</strong></div>
+        <div style="flex:1">
+          <div class="feed-name">${esc(name)}${isFirst ? ' <span class="feed-new-badge">NEW</span>' : ''}</div>
+          <div class="feed-org">${esc(org ? orgName(org) : 'Unknown authority')}</div>
         </div>
       </div>`;
     }).join('');
-    return `<h3 class="feed-date-header">${fmtDate(date)} <span style="color:#b1b4b6;font-weight:400;font-size:0.9rem">(${entries.length} record${entries.length > 1 ? 's' : ''})</span></h3>${items}`;
+    return `<h3 class="feed-date">${fmtDate(date)} <span style="color:#b1b4b6;font-weight:400;font-size:0.85rem">(${entries.length})</span></h3>${rows}`;
   }).join('');
 
   document.getElementById('activity-feed').innerHTML = html;
 }
 
-// ── Weekly summary ────────────────────────────────────────────────────────────
-
-function renderWeekly() {
-  const total = S.weekly.length;
-  const byCounts = Object.fromEntries(DATASETS.map(ds => [ds.id, S.weekly.filter(e => e._ds === ds.id).length]));
-
-  // Orgs that added data this week
-  const orgCounts = {};
-  S.weekly.forEach(e => {
-    const id = e['organisation-entity'];
-    if (id) orgCounts[id] = (orgCounts[id] || 0) + 1;
-  });
-  const weekOrgs = Object.entries(orgCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([id, n]) => ({ name: orgName(id), count: n }));
-
-  const dsBreakdown = DATASETS.map(ds => `
-    <div class="weekly-ds">
-      <div class="weekly-ds__count">${byCounts[ds.id]}</div>
-      <div class="weekly-ds__label">${esc(ds.label)}</div>
-    </div>`).join('');
-
-  const orgTable = weekOrgs.length
-    ? `<h3 class="govuk-heading-m">Councils that added data this week</h3>
-       <table class="govuk-table">
-         <thead class="govuk-table__head">
-           <tr class="govuk-table__row">
-             <th scope="col" class="govuk-table__header">Council</th>
-             <th scope="col" class="govuk-table__header govuk-table__header--numeric">Records added</th>
-           </tr>
-         </thead>
-         <tbody class="govuk-table__body">
-           ${weekOrgs.map(r => `
-             <tr class="govuk-table__row">
-               <td class="govuk-table__cell">${esc(r.name)}</td>
-               <td class="govuk-table__cell govuk-table__cell--numeric">${r.count}</td>
-             </tr>`).join('')}
-         </tbody>
-       </table>`
-    : `<p class="govuk-body">No new records have been added in the last 7 days.</p>`;
-
-  document.getElementById('weekly-content').innerHTML = `
-    <div class="weekly-hero">${total}</div>
-    <p class="weekly-sub">records added in the last 7 days</p>
-    <div class="weekly-ds-grid">${dsBreakdown}</div>
-    ${orgTable}`;
-}
-
 // ── Render all ────────────────────────────────────────────────────────────────
 
 function renderAll() {
-  renderStats();
-  renderLeaderboard();
-  renderHeatmap();
+  renderCompletionStrip();
+  renderOverview();
+  renderTimeline();
+  renderMap();
   renderActivity();
-  renderWeekly();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
